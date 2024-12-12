@@ -1,0 +1,17 @@
+canny_edge:
+  low_threshold: 180
+  high_threshold: 240
+  kernel_size: 5
+
+region_of_interest:
+  apex_factor: 0.85
+
+hough_transform:
+  rho: 1
+  theta: 0.0174533 
+  threshold: 2
+  min_line_length: 4
+  max_line_gap: 5
+
+test_video:
+  path: "test_videos/solidYellowLeft.mp4"
