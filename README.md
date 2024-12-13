@@ -2,8 +2,9 @@
 
 ## TODO
 - [x] Finish basic lane-line detection algorithm
-- [ ] Create the video and save it instead of showing at run time
-- [/] Calculate one line from all hough lines
+- [x] Create the video and save it instead of showing at run time
+- [x] Calculate one line from all hough lines
+- [ ] Make predicted line lengths shorter when necessary (curves)
 - [ ] Add Car detector
 - [ ] Find the drivable field as the area between the lane-lines
 - [ ] Find data-set for deep-learning approach

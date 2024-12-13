@@ -244,7 +244,7 @@ class LaneLineDetector(object):
         self.left_lane = smooth_left_lane
         self.right_lane = smooth_right_lane
         y1 = img.shape[0]
-        y2 = 0.65 * y1
+        y2 = 0.59 * y1
         
         left_line  = self._find_line_points(y1, y2, smooth_left_lane)
         right_line = self._find_line_points(y1, y2, smooth_right_lane)
