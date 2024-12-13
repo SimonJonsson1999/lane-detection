@@ -22,12 +22,13 @@ class LaneLineDetector(object):
         self.high_threshold = self.config['canny_edge'].get('high_threshold', 240)
         self.apex_factor = self.config['region_of_interest'].get('apex_factor', 0.85)
 
-        
         self.rho = self.config['hough_transform'].get('rho', 1)
         self.theta = self.config['hough_transform'].get('theta', np.pi / 180)
         self.threshold = self.config['hough_transform'].get('threshold', 2)
         self.min_line_length = self.config['hough_transform'].get('min_line_length', 4)
         self.max_line_gap = self.config['hough_transform'].get('max_line_gap', 5)
+        self.left_lane = None
+        self.right_lane = None
 
     def detect(self, img):
         """
@@ -42,12 +43,11 @@ class LaneLineDetector(object):
         region_of_interest = self._get_region_of_interest(img)
         canny = self._canny(img)
         masked_canny = self._mask_canny(canny, region_of_interest)
-        lines = self._get_hough_lines(masked_canny)
+        lines = self._get_hough_lines(masked_canny, self.rho,
+                                      self.theta, self.threshold,
+                                      self.min_line_length, self.max_line_gap)
         lane_lines = self._create_lane_lines(img, lines)
         detected_image = self._draw_lane_lines(img, lane_lines)
-        # print(f"Number of lines: {len(lines)}")
-        # print(f"left_lane: {left_lane}")
-        # print(f"right_lane: {right_lane}")
         
         return detected_image
 
@@ -69,7 +69,7 @@ class LaneLineDetector(object):
         region_of_interest = (left_bottom, apex, right_bottom)
         return region_of_interest
     
-    def _get_hough_lines(self, masked_edges, rho=1, theta=np.pi/180, threshold=2, min_line_length=4, max_line_gap=5):
+    def _get_hough_lines(self, masked_edges, rho, theta, threshold, min_line_length, max_line_gap):
         """
         Detects line segments using the Hough Line Transform.
 
@@ -131,31 +131,94 @@ class LaneLineDetector(object):
 
         Returns:
             tuple: (left_lane, right_lane) where each lane is a tuple (slope, intercept).
-                   Returns None for a lane if no lines are found for it.
+                Returns None for a lane if no lines are found for it.
         """
+        def filter_lines(lines, lengths):
+            if not lines:
+                return [], []
+            filter_strength = 3
+            slopes, intercepts = zip(*lines)
+            slope_mean, slope_std = np.mean(slopes), np.std(slopes)
+            intercept_mean, intercept_std = np.mean(intercepts), np.std(intercepts)
+            filtered_lines = [
+                (slope, intercept) for (slope, intercept), length in zip(lines, lengths)
+                if (slope_mean - filter_strength * slope_std <= slope <= slope_mean + filter_strength * slope_std) and
+                (intercept_mean - filter_strength * intercept_std <= intercept <= intercept_mean + filter_strength * intercept_std)
+            ]
+            filtered_lengths = [
+                length for (slope, intercept), length in zip(lines, lengths)
+                if (slope_mean - filter_strength * slope_std <= slope <= slope_mean + filter_strength * slope_std) and
+                (intercept_mean - filter_strength * intercept_std <= intercept <= intercept_mean + filter_strength * intercept_std)
+            ]
+            return filtered_lines, filtered_lengths
+
         left_lines = []
         left_lengths = []
         right_lines = []
         right_lengths = []
         
         for line in lines:
-            for x1,y1,x2,y2 in line:
-                if x1 == x2:
+            for x1, y1, x2, y2 in line:
+                if x1 == x2: 
                     continue
                 slope = (y2 - y1) / (x2 - x1)
-                intercept = y2 - slope*x2
-                length = np.sqrt( (y2 - y1)**2 + (x2 - x1)**2)
+                intercept = y2 - slope * x2
+                length = np.sqrt((y2 - y1)**2 + (x2 - x1)**2)
                 if slope < 0:
                     left_lines.append((slope, intercept))
-                    left_lengths.append((length))
+                    left_lengths.append(length)
                 else:
                     right_lines.append((slope, intercept))
-                    right_lengths.append((length))
-        left_lane  = np.dot(left_lengths,  left_lines) / np.sum(left_lengths)  if len(left_lengths) > 0 else None
-        right_lane = np.dot(right_lengths, right_lines) / np.sum(right_lengths) if len(right_lengths) > 0 else None
+                    right_lengths.append(length)
+        
+        left_lines, left_lengths = filter_lines(left_lines, left_lengths)
+        right_lines, right_lengths = filter_lines(right_lines, right_lengths)
+
+        left_lane = (
+            np.dot(left_lengths, left_lines) / np.sum(left_lengths)
+            if len(left_lengths) > 0 else None
+        )
+        right_lane = (
+            np.dot(right_lengths, right_lines) / np.sum(right_lengths)
+            if len(right_lengths) > 0 else None
+        )
+        
         return left_lane, right_lane
     
+    def _combine_lanes(self, old_lane, new_lane, alpha=0.7):
+        """
+        Combines the old and new lane parameters using exponential smoothing.
+
+        Parameters:
+            old_lane (tuple): Previous lane parameters (slope, intercept) or None.
+            new_lane (tuple): Current lane parameters (slope, intercept) or None.
+            alpha (float): Weight for the new lane parameters (0 < alpha <= 1).
+
+        Returns:
+            tuple: Smoothed lane parameters (slope, intercept) or None if both inputs are None.
+        """
+        if old_lane is None:
+            return new_lane  
+        if new_lane is None:
+            return old_lane  
+
+        smoothed_lane = (
+            (1 - alpha) * np.array(old_lane) + alpha * np.array(new_lane)
+        )
+        return tuple(smoothed_lane)
+    
     def _find_line_points(self, y1, y2, line):
+        """
+        Finds the x-coordinates of the line at given y-values, and returns the points.
+
+        Parameters:
+            y1 (int): Starting y-coordinate.
+            y2 (int): Ending y-coordinate.
+            line (tuple): Lane line parameters (slope, intercept).
+
+        Returns:
+            tuple: Coordinates (x1, y1), (x2, y2) for the left and right lane lines.
+        """
         if line is None:
             return None
         slope, intercept = line
@@ -165,16 +228,41 @@ class LaneLineDetector(object):
         return ((x1, y1), (x2, y2))
     
     def _create_lane_lines(self, img, lines):
+        """
+        Creates lane lines by averaging the detected lines and smoothing them.
+
+        Parameters:
+            img (ndarray): Input image.
+            lines (list): Detected line segments.
+
+        Returns:
+            tuple: Left and right lane lines as ((x1, y1), (x2, y2)) points.
+        """
         left_lane, right_lane = self._average_lines(lines)
+        smooth_left_lane = self._combine_lanes(self.left_lane, left_lane)
+        smooth_right_lane = self._combine_lanes(self.right_lane, right_lane)
+        self.left_lane = smooth_left_lane
+        self.right_lane = smooth_right_lane
         y1 = img.shape[0]
-        y2 = 0.65*y1
+        y2 = 0.65 * y1
         
-        left_line  = self._find_line_points(y1, y2, left_lane)
-        right_line = self._find_line_points(y1, y2, right_lane)
+        left_line  = self._find_line_points(y1, y2, smooth_left_lane)
+        right_line = self._find_line_points(y1, y2, smooth_right_lane)
         return left_line, right_line
     
-    
     def _draw_lane_lines(self, img, lines, color=[255, 0, 0], thickness=10):
+        """
+        Draws the detected lane lines on the image.
+
+        Parameters:
+            img (ndarray): Input image.
+            lines (tuple): Left and right lane lines.
+            color (list): RGB color for the lines (default is blue).
+            thickness (int): Line thickness (default is 10).
+
+        Returns:
+            ndarray: Image with drawn lane lines.
+        """
         line_image = np.zeros_like(img)
         for line in lines:
             if line is None:  # Skip if no line
@@ -182,13 +270,7 @@ class LaneLineDetector(object):
             pt1, pt2 = line
             if pt1 is None or pt2 is None:  # Check for invalid points
                 continue
-            # Convert points to integers
             pt1 = tuple(map(int, pt1))
             pt2 = tuple(map(int, pt2))
             cv2.line(line_image, pt1, pt2, color, thickness)
         return cv2.addWeighted(img, 1.0, line_image, 1.0, 0.0)
-    # def _draw_lane_lines(self, img, lines, color=[255,0,0], thickness=10):
-    #     line_image = np.zeros_like(img)
-    #     for line in lines:
-    #         cv2.line(line_image, *line, color, thickness)
-    #     return cv2.addWeighted(img, 1.0, line_image, 1.0, 0.0)

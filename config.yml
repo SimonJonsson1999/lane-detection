@@ -9,9 +9,9 @@ region_of_interest:
 hough_transform:
   rho: 1
   theta: 0.0174533 
-  threshold: 2
-  min_line_length: 4
-  max_line_gap: 5
+  threshold: 20
+  min_line_length: 100
+  max_line_gap: 300
 
 test_video:
   path: "test_videos/solidYellowLeft.mp4"
