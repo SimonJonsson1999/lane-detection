@@ -20,6 +20,7 @@ def main():
             break  
         frame = lane_line_detector.detect(frame)
         cv2.imshow('Lane Line Detection', frame)
+        cv2.waitKey(500)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     video_capture.release()
