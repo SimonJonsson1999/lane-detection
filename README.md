@@ -2,8 +2,13 @@
 
 ## TODO
 - [x] Finish basic lane-line detection algorithm
+- [ ] Create the video and save it instead of showing at run time
+- [/] Calculate one line from all hough lines
 - [ ] Add Car detector
 - [ ] Find the drivable field as the area between the lane-lines
+- [ ] Find data-set for deep-learning approach
+- [ ] Implement deep-learning approach
+- [ ] Calculate FPS when running algortihm
 
 ## Project Description
 A lane-line detector designed to assist autonomous vehicles in identifying lane markings on the road. This project uses computer vision techniques to process images or video streams and detect lane boundaries, providing crucial information for vehicle navigation.

@@ -11,7 +11,7 @@ class LaneLineDetector(object):
         self.high_threshold = self.config['canny_edge'].get('high_threshold', 240)
         self.apex_factor = self.config['region_of_interest'].get('apex_factor', 0.85)
 
-        # Hough transform parameters
+        
         self.rho = self.config['hough_transform'].get('rho', 1)
         self.theta = self.config['hough_transform'].get('theta', np.pi / 180)
         self.threshold = self.config['hough_transform'].get('threshold', 2)
