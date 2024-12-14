@@ -4,6 +4,7 @@
 - [x] Finish basic lane-line detection algorithm
 - [x] Create the video and save it instead of showing at run time
 - [x] Calculate one line from all hough lines
+- [ ] Perspective transform and sliding window approach (https://www.youtube.com/watch?v=ApYo6tXcjjQ&t=214s)
 - [ ] Make predicted line lengths shorter when necessary (curves)
 - [ ] Add Car detector
 - [ ] Find the drivable field as the area between the lane-lines
