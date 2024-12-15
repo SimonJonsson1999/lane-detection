@@ -1,9 +1,9 @@
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
+from BaseDetector import BaseDetector
 
 
-class LaneLineDetector(object):
+class CannyHoughDetector(BaseDetector):
     """
     Detects lane lines in an input image using image processing techniques such as 
     Canny edge detection, region masking, and Hough Line Transform.
@@ -30,25 +30,24 @@ class LaneLineDetector(object):
         self.left_lane = None
         self.right_lane = None
 
-    def detect(self, img):
-        """
-        Detects lane lines in the input image.
-        
-        Parameters:
-            img (ndarray): Input image (BGR format).
 
-        Returns:
-            ndarray: Output image with detected lanes drawn on it.
-        """
+    def pre_process(self, img):
         region_of_interest = self._get_region_of_interest(img)
         canny = self._canny(img)
-        masked_canny = self._mask_canny(canny, region_of_interest)
-        lines = self._get_hough_lines(masked_canny, self.rho,
+        mask = self._mask_canny(canny, region_of_interest)
+
+        return mask
+    
+    def get_lines(self, img, mask):
+        lines = self._get_hough_lines(mask, self.rho,
                                       self.theta, self.threshold,
                                       self.min_line_length, self.max_line_gap)
         lane_lines = self._create_lane_lines(img, lines)
-        detected_image = self._draw_lane_lines(img, lane_lines)
-        
+        return lane_lines
+
+    
+    def add_lines(self, img, lines):
+        detected_image = self._draw_lane_lines(img, lines)
         return detected_image
 
     def _get_region_of_interest(self, img):
@@ -250,27 +249,4 @@ class LaneLineDetector(object):
         right_line = self._find_line_points(y1, y2, smooth_right_lane)
         return left_line, right_line
     
-    def _draw_lane_lines(self, img, lines, color=[255, 0, 0], thickness=10):
-        """
-        Draws the detected lane lines on the image.
 
-        Parameters:
-            img (ndarray): Input image.
-            lines (tuple): Left and right lane lines.
-            color (list): RGB color for the lines (default is blue).
-            thickness (int): Line thickness (default is 10).
-
-        Returns:
-            ndarray: Image with drawn lane lines.
-        """
-        line_image = np.zeros_like(img)
-        for line in lines:
-            if line is None:  # Skip if no line
-                continue
-            pt1, pt2 = line
-            if pt1 is None or pt2 is None:  # Check for invalid points
-                continue
-            pt1 = tuple(map(int, pt1))
-            pt2 = tuple(map(int, pt2))
-            cv2.line(line_image, pt1, pt2, color, thickness)
-        return cv2.addWeighted(img, 1.0, line_image, 1.0, 0.0)

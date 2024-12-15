@@ -27,8 +27,5 @@ Details on how to use the lane-line detector effectively:
 2. Run the detection script: `python main.py`
 
 ## Results
-https://github.com/user-attachments/assets/b315ab51-7ba2-45cb-9735-04abb779a1bd
 
-
-https://github.com/user-attachments/assets/3142f8c6-d216-456e-ba30-ee133824fa6a
 
