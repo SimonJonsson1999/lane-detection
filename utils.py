@@ -34,3 +34,9 @@ def visualize_histogram(histogram, name="Histogram Visualization"):
     plt.grid(True)
     plt.show()
 
+def fill_lane(img, left_points, right_points):
+    pts = np.hstack((left_points, right_points))
+    # img = np.zeros((img.shape[0], img.shape[1], 3), dtype='uint8')
+    cv2.fillPoly(img, np.int_([pts]), (0,0, 255))
+    return img
+

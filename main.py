@@ -9,7 +9,7 @@ def main():
     config = load_config("config.yml")
     
     lane_line_detector = SlidingWindowDetector(config)
-    
+    # lane_line_detector = CannyHoughDetector(config)
     video_path = config['test_video']['path']
     output_path = config['test_video'].get('output', None)
     show_video = config['test_video'].get('show_video', True)
@@ -35,7 +35,7 @@ def main():
         frame = lane_line_detector.detect(frame)
         if show_video:
             cv2.imshow('Lane Line Detection', frame)
-            cv2.waitKey(0)
+            # cv2.waitKey(0)
         if output_path:
             out_video.write(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
