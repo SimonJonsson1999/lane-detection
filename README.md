@@ -1,5 +1,19 @@
 # Lane-Line Detector
 
+## Project Description
+A lane-line detector is essential for self-driving cars and serves as an excellent way to learn and showcase computer vision techniques. In this project, I explore different methods to detect lane lines. The techniques implemented include:
+
+### Detection Methods
+1. **CannyHoughDetector**  
+    - Uses the Canny edge algorithm to detect edges, followed by a transformation into Hough space to identify straight lines.  
+    - Performs reasonably well for straight driving but struggles with curved roads.
+
+2. **SlidingWindowDetector**  
+    - Applies thresholding and performs a perspective transform on the region-of-interest (ROI).  
+    - Uses a sliding window to detect lane lines. Points on the lines are then used to fit a polynomial describing the lane-line, allowing detection of curves.  
+    - Lane lines are detected in the transformed space and later mapped back to pixel space, where they are displayed on the original image.
+
+-
 ## TODO
 - [x] Finish basic lane-line detection algorithm
 - [x] Create the video and save it instead of showing at run time
@@ -12,8 +26,7 @@
 - [ ] Implement deep-learning approach
 - [ ] Calculate FPS when running algortihm
 
-## Project Description
-A lane-line detector designed to assist autonomous vehicles in identifying lane markings on the road. This project uses computer vision techniques to process images or video streams and detect lane boundaries, providing crucial information for vehicle navigation.
+
 
 ## Installation
 Step-by-step instructions on how to set up the lane-line detector locally:
