@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 from BaseDetector import BaseDetector
-from utils import load_config, display, display_points_on_image, visualize_histogram, fill_lane
+from utils import load_config, display, display_points_on_image, visualize_histogram, fill_lane, draw_lane_through_points
 
 class SlidingWindowDetector(BaseDetector):
 
@@ -45,10 +45,11 @@ class SlidingWindowDetector(BaseDetector):
     
     def add_lines(self, img, lines):
         (pts_left, pts_right) = lines
-
-        filled_lane = fill_lane(img, pts_left, pts_right)
+        lanes_img = draw_lane_through_points(img, pts_left, color=[255,0,0], thickness=5)
+        lanes_img = draw_lane_through_points(img, pts_right, color=[0,0,255], thickness=5)
+        # filled_lane = fill_lane(lanes_img, pts_left, pts_right)
         # result = self._replace_lane_area(img, filled_lane_normal)
-        return filled_lane
+        return lanes_img
 
     def _replace_lane_area(self, original_img, filled_lane):
         """
@@ -83,7 +84,7 @@ class SlidingWindowDetector(BaseDetector):
         """
         def click_event(event, x, y, flags, param):
             if event == cv2.EVENT_LBUTTONDOWN:
-                cv2.circle(img, (x, y), 5, (0, 0, 255), -1)
+                cv2.circle(img, (x, y), 3, (0, 0, 255), -1)
                 cv2.imshow("Image", img)
                 self.src_points.append((x, y))
                 if len(self.src_points) == 4:
@@ -147,7 +148,7 @@ class SlidingWindowDetector(BaseDetector):
         right_base = np.argmax(histogram[midpoint:]) + midpoint
         return left_base, right_base
     
-    def _sliding_window(self, mask, left_base, right_base, n_windows=50, margin=100, minpix=50, alpha=0.7):
+    def _sliding_window(self, mask, left_base, right_base, n_windows=50, margin=75, minpix=50, alpha=0.5):
         out_img = np.dstack((mask, mask, mask)) * 255
         left_lane_indices , right_lane_indices  = [], []
         window_height = self.height // n_windows
@@ -162,10 +163,10 @@ class SlidingWindowDetector(BaseDetector):
             x_left_high = left_x_current + margin
             x_right_low = right_x_current - margin
             x_right_high = right_x_current + margin
-            cv2.rectangle(out_img, (x_left_low, y_low), (x_left_high, y_high), (0, 255, 0), 2)
-            cv2.rectangle(out_img, (x_right_low, y_low), (x_right_high, y_high), (0, 255, 0), 2)
-            cv2.circle(out_img, (right_x_current, (y_low + y_high) // 2), 5, (0, 0, 255), -1)
-            cv2.circle(out_img, (left_x_current, (y_low + y_high) // 2), 5, (0, 0, 255), -1)
+            # cv2.rectangle(out_img, (x_left_low, y_low), (x_left_high, y_high), (0, 255, 0), 2)
+            # cv2.rectangle(out_img, (x_right_low, y_low), (x_right_high, y_high), (0, 255, 0), 2)
+            # cv2.circle(out_img, (right_x_current, (y_low + y_high) // 2), 5, (0, 0, 255), -1)
+            # cv2.circle(out_img, (left_x_current, (y_low + y_high) // 2), 5, (0, 0, 255), -1)
             good_left_indices = ((y >= y_low) & (y < y_high) & (x >= x_left_low) & (x < x_left_high)).nonzero()[0]
             good_right_indices  = ((y >= y_low) & (y < y_high) & (x >= x_right_low) & (x < x_right_high)).nonzero()[0]
 
@@ -200,3 +201,5 @@ class SlidingWindowDetector(BaseDetector):
         pts_left = np.array([np.transpose(np.vstack([left_fitx, left_y]))])
         pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, right_y])))])
         return pts_left, pts_right
+
+

@@ -3,6 +3,7 @@ from CannyHoughDetector import CannyHoughDetector
 from SlidingWindowDetector import SlidingWindowDetector
 from utils import load_config
 import cv2
+import time 
 
 
 def main():
@@ -27,12 +28,24 @@ def main():
     if output_path:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out_video = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
-    
+    prev_frame_time = 0
+    new_frame_time = 0
     while video_capture.isOpened():
+        
         ret, frame = video_capture.read()
         if not ret:
             break  
+        new_frame_time = time.time()
+        fps = 1 / (new_frame_time - prev_frame_time) 
+        prev_frame_time = new_frame_time
         frame = lane_line_detector.detect(frame)
+        fps_text = f"FPS: {int(fps)}"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.7
+        color = (139, 0, 0)  # Dark blue in BGR
+        thickness = 2
+        org = (10, 30)  # Top-left corner of the frame
+        cv2.putText(frame, fps_text, org, font, font_scale, color, thickness, cv2.LINE_AA)
         if show_video:
             cv2.imshow('Lane Line Detection', frame)
             # cv2.waitKey(0)

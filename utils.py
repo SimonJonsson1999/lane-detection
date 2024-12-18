@@ -34,9 +34,13 @@ def visualize_histogram(histogram, name="Histogram Visualization"):
     plt.grid(True)
     plt.show()
 
-def fill_lane(img, left_points, right_points):
+def fill_lane(img, left_points, right_points, color=[0,255,0]):
     pts = np.hstack((left_points, right_points))
     # img = np.zeros((img.shape[0], img.shape[1], 3), dtype='uint8')
-    cv2.fillPoly(img, np.int_([pts]), (0,0, 255))
+    cv2.fillPoly(img, np.int_([pts]), color)
     return img
+
+def draw_lane_through_points(img, pts, color=[0, 0, 255], thickness=10):
+    pts = np.array(pts, dtype=np.int32).reshape((-1, 1, 2))
+    return cv2.polylines(img, [pts], isClosed=False, color=color, thickness=thickness)
 
