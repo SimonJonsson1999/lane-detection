@@ -6,8 +6,8 @@ class BaseDetector(object):
     def detect(self, img):
         mask = self.pre_process(img)
         lines = self.get_lines(img, mask)
-        line_image = self.add_lines(img, lines)
-        return line_image
+        filled_lane, line_image = self.add_lines(img, lines)
+        return line_image, filled_lane, mask
     
     def pre_process(self, img):
         raise NotImplementedError

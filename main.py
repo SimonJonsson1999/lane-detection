@@ -4,8 +4,11 @@ from SlidingWindowDetector import SlidingWindowDetector
 from utils import load_config
 import cv2
 import time 
+import numpy as np
 
-
+## TODO
+# Save Combined video
+# Fix much more documentation
 def main():
     config = load_config("config.yml")
     
@@ -33,12 +36,15 @@ def main():
     while video_capture.isOpened():
         
         ret, frame = video_capture.read()
+        
+        
         if not ret:
             break  
+        frame_copy = frame.copy()
         new_frame_time = time.time()
         fps = 1 / (new_frame_time - prev_frame_time) 
         prev_frame_time = new_frame_time
-        frame = lane_line_detector.detect(frame)
+        line_image, filled_lane, mask = lane_line_detector.detect(frame)
         fps_text = f"FPS: {int(fps)}"
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = 0.7
@@ -46,11 +52,28 @@ def main():
         thickness = 2
         org = (10, 30)  # Top-left corner of the frame
         cv2.putText(frame, fps_text, org, font, font_scale, color, thickness, cv2.LINE_AA)
+
+
+        frame_copy = cv2.resize(frame_copy, (640, 360))
+        line_image = cv2.resize(line_image, (640, 360))
+        mask = cv2.resize(mask, (640, 360))
+        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
+        top_row = np.hstack([frame_copy, line_image])
+        if filled_lane is not None:
+            filled_lane = cv2.resize(filled_lane, (640, 360))
+            bottom_row = np.hstack([mask, filled_lane])
+        else:
+            bottom_row = np.hstack([mask, np.zeros_like(mask)])
+        combined = np.vstack([top_row, bottom_row])
+
+
+
         if show_video:
-            cv2.imshow('Lane Line Detection', frame)
+            cv2.imshow('Lane Line Detection', combined)
             # cv2.waitKey(0)
         if output_path:
             out_video.write(frame)
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     

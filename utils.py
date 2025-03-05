@@ -32,7 +32,9 @@ def visualize_histogram(histogram, name="Histogram Visualization"):
     plt.title(name)
     plt.legend()
     plt.grid(True)
+    # plt.savefig("images/histogram.jpeg")
     plt.show()
+
 
 def fill_lane(img, left_points, right_points, color=[0,255,0]):
     pts = np.hstack((left_points, right_points))

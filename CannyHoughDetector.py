@@ -48,7 +48,7 @@ class CannyHoughDetector(BaseDetector):
     
     def add_lines(self, img, lines):
         detected_image = self._draw_lane_lines(img, lines)
-        return detected_image
+        return None, detected_image
 
     def _get_region_of_interest(self, img):
         """

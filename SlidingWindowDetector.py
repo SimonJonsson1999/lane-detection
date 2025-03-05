@@ -21,22 +21,31 @@ class SlidingWindowDetector(BaseDetector):
     def pre_process(self, img):
         self.height = img.shape[0]
         self.width = img.shape[1]
-        mask = self._pre_processing(img)
+        ###test###
+        test_img = np.copy(img)
+        self.src_points = self.pick_points(test_img) if len(self.src_points) == 0 else self.src_points
+        dst_points = self._get_dst_points()
+        test_img = self._transform_perspective(test_img, self.src_points, dst_points, (self.width, self.height))
+        mask = self._pre_processing(test_img)
         self.src_points = self.pick_points(img) if len(self.src_points) == 0 else self.src_points
         masked_img = self._region_of_interest(mask, self.src_points)
-        return masked_img
+        return mask
     
     def get_lines(self, img, mask):
-        self.src_points = self.pick_points(img) if len(self.src_points) == 0 else self.src_points
         dst_points = self._get_dst_points()
-        # display(mask)
-        transformed_mask = self._transform_perspective(mask, self.src_points, dst_points, (self.width, self.height))
+        transformed_img = self._transform_perspective(img, self.src_points, dst_points, (self.width, self.height))
+        dst_points = self._get_dst_points()
+        # transformed_mask = self._transform_perspective(mask, self.src_points, dst_points, (self.width, self.height))
+        transformed_mask = mask
+        # cv2.imwrite("images/transformed_mask.jpeg", transformed_mask)
+        # transformed_img = self._transform_perspective(img, self.src_points, dst_points, (self.width, self.height))
+        # cv2.imwrite("images/transformed_img.jpeg", transformed_img)
         kernel = np.ones((11,11), np.uint8)
         opening = cv2.morphologyEx(transformed_mask, cv2.MORPH_CLOSE, kernel)
         # display(transformed_mask)
         left_base, right_base= self._get_base(transformed_mask)
         left_fit, right_fit, debug_img = self._sliding_window(transformed_mask, left_base, right_base)
-        # display(debug_img)
+        # cv2.imwrite("images/debug_img.jpeg",debug_img)
         pts_left, pts_right = self._find_points(left_fit, right_fit)
         original_pts_left = self._transform_points(pts_left, dst_points, self.src_points)
         original_pts_right = self._transform_points(pts_right,dst_points, self.src_points)
@@ -47,34 +56,30 @@ class SlidingWindowDetector(BaseDetector):
         (pts_left, pts_right) = lines
         lanes_img = draw_lane_through_points(img, pts_left, color=[255,0,0], thickness=5)
         lanes_img = draw_lane_through_points(img, pts_right, color=[0,0,255], thickness=5)
-        # filled_lane = fill_lane(lanes_img, pts_left, pts_right)
-        # result = self._replace_lane_area(img, filled_lane_normal)
-        return lanes_img
-
-    def _replace_lane_area(self, original_img, filled_lane):
-        """
-        Replace the lane area in the original image with the filled lane.
-        :param original_img: The original image.
-        :param filled_lane: The transformed filled lane image in normal coordinates.
-        :return: The combined image.
-        """
-        lane_mask = cv2.cvtColor(filled_lane, cv2.COLOR_BGR2GRAY)
-        _, lane_mask_binary = cv2.threshold(lane_mask, 1, 255, cv2.THRESH_BINARY)
-        inv_mask = cv2.bitwise_not(lane_mask_binary)
-        original_without_lane = cv2.bitwise_and(original_img, original_img, mask=inv_mask)
-        result = cv2.add(original_without_lane, filled_lane)
-        return result
+        lanes_img_copy = lanes_img.copy()
+        # cv2.imwrite("images/lanes_img.jpeg",lanes_img)
+        filled_lane = fill_lane(lanes_img, pts_left, pts_right)
+        # cv2.imwrite("images/filled_lane.jpeg",filled_lane)
+        return filled_lane, lanes_img_copy
 
 
     def _pre_processing(self, img):
         gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # cv2.imwrite("images/gray_img.jpeg", gray_img)
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        # cv2.imwrite("images/hsv.jpeg", hsv)
         gray_img_blur = cv2.GaussianBlur(gray_img, (5,5), 0)
+        # cv2.imwrite("images/gray_img_blur.jpeg", gray_img_blur)
         white_mask = cv2.threshold(gray_img_blur, 200, 255, cv2.THRESH_BINARY)[1]
+        # cv2.imwrite("images/white_mask.jpeg", white_mask)
         lower_yellow = np.array([0,100,100])
         upper_yellow = np.array([210,255,255])
         yellow_mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+        # cv2.imshow("yellow_mask",yellow_mask)
+        # cv2.imwrite("images/yellow_mask.jpeg", yellow_mask)
         mask = cv2.bitwise_or(white_mask, yellow_mask)
+        # cv2.imshow("mask",mask)
+        # cv2.imwrite("images/mask.jpeg", mask)
         return mask
 
     def pick_points(self, img):
@@ -82,17 +87,19 @@ class SlidingWindowDetector(BaseDetector):
         Function to let the user pick the source points interactively
         in the order: top-left, top-right, bottom-right, bottom-left.
         """
+        img_copy = np.copy(img)
         def click_event(event, x, y, flags, param):
             if event == cv2.EVENT_LBUTTONDOWN:
-                cv2.circle(img, (x, y), 3, (0, 0, 255), -1)
-                cv2.imshow("Image", img)
+                cv2.circle(img_copy, (x, y), 3, (0, 0, 255), -1)
+                # cv2.imshow("Image", img_copy)
                 self.src_points.append((x, y))
                 if len(self.src_points) == 4:
                     print("Points selected:", self.src_points)
+                    # cv2.imwrite("images/pick_points.jpeg", img_copy)
                     cv2.destroyAllWindows()
 
         
-        cv2.imshow("Image", img)
+        cv2.imshow("Image", img_copy)
         cv2.setMouseCallback("Image", click_event)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -110,14 +117,14 @@ class SlidingWindowDetector(BaseDetector):
         transformed_pts = cv2.perspectiveTransform(pts, matrix)
         return transformed_pts
     
-    # def _get_polygon(self):
-    #     polygon = np.float32([
-    #                             [int(self.width * 0.45), int(self.height * 0.62)],  # Top-left 
-    #                             [int(self.width * 0.58), int(self.height * 0.62)],  # Top-right
-    #                             [int(0.95 * self.width), int(self.height * 0.94)],  # Bottom-right
-    #                             [int(self.width * 0.15), int(self.height * 0.94)]   # Bottom-left
-    #                             ])
-    #     return polygon
+    def _get_polygon(self):
+        polygon = np.float32([
+                                [int(self.width * 0.45), int(self.height * 0.62)],  # Top-left 
+                                [int(self.width * 0.58), int(self.height * 0.62)],  # Top-right
+                                [int(0.95 * self.width), int(self.height * 0.94)],  # Bottom-right
+                                [int(self.width * 0.15), int(self.height * 0.94)]   # Bottom-left
+                                ])
+        return polygon
     
     def _region_of_interest(self, img, polygon):
         mask = np.zeros_like(img)
@@ -125,6 +132,7 @@ class SlidingWindowDetector(BaseDetector):
         ignore_mask_color = (255,) * img.shape[2] if len(img.shape) > 2 else 255
         cv2.fillPoly(mask, vertices, ignore_mask_color)
         masked_img = cv2.bitwise_and(img, mask)
+        # cv2.imwrite("images/masked_img.jpeg", img)
         return masked_img
 
     def _get_src_points(self):
@@ -141,8 +149,9 @@ class SlidingWindowDetector(BaseDetector):
         return points
     
     def _get_base(self, mask):
+        # display(mask)
         histogram = np.sum(mask[self.height // 2:, :], axis=0)
-        # visualize_histogram(histogram)
+        # visualize_histgram(histogram)
         midpoint = int(histogram.shape[0]/2)
         left_base = np.argmax(histogram[:midpoint])
         right_base = np.argmax(histogram[midpoint:]) + midpoint
@@ -163,10 +172,10 @@ class SlidingWindowDetector(BaseDetector):
             x_left_high = left_x_current + margin
             x_right_low = right_x_current - margin
             x_right_high = right_x_current + margin
-            # cv2.rectangle(out_img, (x_left_low, y_low), (x_left_high, y_high), (0, 255, 0), 2)
-            # cv2.rectangle(out_img, (x_right_low, y_low), (x_right_high, y_high), (0, 255, 0), 2)
-            # cv2.circle(out_img, (right_x_current, (y_low + y_high) // 2), 5, (0, 0, 255), -1)
-            # cv2.circle(out_img, (left_x_current, (y_low + y_high) // 2), 5, (0, 0, 255), -1)
+            cv2.rectangle(out_img, (x_left_low, y_low), (x_left_high, y_high), (0, 255, 0), 2)
+            cv2.rectangle(out_img, (x_right_low, y_low), (x_right_high, y_high), (0, 255, 0), 2)
+            cv2.circle(out_img, (right_x_current, (y_low + y_high) // 2), 5, (0, 0, 255), -1)
+            cv2.circle(out_img, (left_x_current, (y_low + y_high) // 2), 5, (0, 0, 255), -1)
             good_left_indices = ((y >= y_low) & (y < y_high) & (x >= x_left_low) & (x < x_left_high)).nonzero()[0]
             good_right_indices  = ((y >= y_low) & (y < y_high) & (x >= x_right_low) & (x < x_right_high)).nonzero()[0]
 
