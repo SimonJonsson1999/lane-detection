@@ -1,6 +1,6 @@
 # Lane-Line Detector
 Project is still WIP and README will be updated continiously, some information is outdated and some is missing.
-![Lane Detection GIF](result/result.gif)
+![Lane Detection GIF](images/result.gif)
 ## Project Description
 A lane-line detector is essential for self-driving cars and serves as an excellent way to learn and showcase computer vision techniques. In this project, I explore different methods to detect lane lines. The techniques implemented include:
 
