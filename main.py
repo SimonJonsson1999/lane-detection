@@ -26,16 +26,18 @@ def main():
     
     frame_width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    print(frame_width, frame_height)
     fps = video_capture.get(cv2.CAP_PROP_FPS)
 
     if output_path:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fourcc = cv2.VideoWriter_fourcc(*'H264')
         out_video = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
     prev_frame_time = 0
     new_frame_time = 0
     while video_capture.isOpened():
         
         ret, frame = video_capture.read()
+        frame = cv2.resize(frame, (640, 360), interpolation=cv2.INTER_AREA)
         
         
         if not ret:
@@ -72,7 +74,7 @@ def main():
             cv2.imshow('Lane Line Detection', combined)
             # cv2.waitKey(0)
         if output_path:
-            out_video.write(frame)
+            out_video.write(combined)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
