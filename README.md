@@ -1,5 +1,6 @@
 # Lane-Line Detector
-
+Project is still WIP and README will be updated continiously, some information is outdated and some is missing.
+![Lane Detection GIF](result/result.gif)
 ## Project Description
 A lane-line detector is essential for self-driving cars and serves as an excellent way to learn and showcase computer vision techniques. In this project, I explore different methods to detect lane lines. The techniques implemented include:
 
@@ -72,7 +73,7 @@ The peaks in the histogram correspond to the **x-values** of the lane line base 
 
 With the lane line base positions detected, a **sliding window** approach is used to track the lane lines across the entire image. The sliding window method works by searching for lane pixels in several vertical windows across the image, starting from the detected base and moving upward.
 
-- **Image:** ![Sliding Window](images/sliding_window.jpeg)
+- **Image:** ![Sliding Window](images/debug_img.jpeg)
 
 For each window, the mean **x-position** of the lane pixels is calculated, and the window is adjusted accordingly to search for the next lane points.
 
